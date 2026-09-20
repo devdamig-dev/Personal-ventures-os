@@ -99,12 +99,14 @@ Shared code patterns are fine. Shared tenant data is not.
 - approval awareness;
 - foundation schema.
 
-### V0.2 — Persistence
-- task runs;
-- approvals;
-- artifacts;
+### V0.2 — Persistence — implemented in code, activation pending dedicated Supabase
+- task runs and task-step skeletons;
+- venture-scoped run history;
+- approvals with explicit human decisions;
 - audit events;
-- Supabase server adapter.
+- Supabase server adapter;
+- explicit disabled-mode fallback;
+- telemetry-ready schema for provider/model/token/cost data.
 
 ### V0.3 — Real orchestration
 - model provider adapter;
