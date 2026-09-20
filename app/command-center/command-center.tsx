@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
   Activity,
@@ -16,6 +17,7 @@ import {
   Gauge,
   Globe2,
   Layers3,
+  ListChecks,
   Menu,
   MessageSquareText,
   MoreHorizontal,
@@ -209,21 +211,24 @@ export function CommandCenter() {
 
         <div className={styles.navLabel}>System</div>
         <nav className={styles.systemNav}>
-          <button className={styles.navActive} type="button">
+          <Link className={styles.navActive} href="/command-center">
             <Layers3 size={16} /> Command Center
-          </button>
-          <button type="button">
+          </Link>
+          <Link href="/agents">
             <Bot size={16} /> Agents
-          </button>
-          <button type="button">
+          </Link>
+          <Link href="/runs">
+            <ListChecks size={16} /> Runs
+          </Link>
+          <Link href="/experiments">
             <FlaskConical size={16} /> Experiments
-          </button>
-          <button type="button">
+          </Link>
+          <Link href="/knowledge">
             <NotebookText size={16} /> Knowledge
-          </button>
-          <button type="button">
+          </Link>
+          <Link href="/approvals">
             <ShieldCheck size={16} /> Approvals
-          </button>
+          </Link>
         </nav>
 
         <div className={styles.scopeCard}>
