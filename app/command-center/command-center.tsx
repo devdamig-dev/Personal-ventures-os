@@ -45,6 +45,40 @@ type Plan = {
   mode: "local-router";
 };
 
+type Orchestration = {
+  mode: "model-backed";
+  status: "completed" | "awaiting_approval" | "needs_revision";
+  approvalRequired: boolean;
+  persisted: boolean;
+  runId: string | null;
+  final: {
+    executiveSummary: string;
+    decisions: string[];
+    deliverables: string[];
+    nextActions: string[];
+    approvalNotes: string[];
+  };
+  qa: {
+    verdict: "pass" | "needs_revision";
+    summary: string;
+    issues: string[];
+    requiredChanges: string[];
+    confidence: number;
+  };
+  traces: Array<{
+    agentId: string;
+    agentName: string;
+    phase: "planning" | "specialist" | "qa" | "synthesis";
+    model: string;
+  }>;
+  usage: {
+    inputTokens: number;
+    outputTokens: number;
+    totalTokens: number;
+    estimatedCostUsd: number;
+  };
+};
+
 type TaskFeedItem = {
   id: string;
   title: string;
@@ -98,6 +132,8 @@ export function CommandCenter() {
   const [ventureSlug, setVentureSlug] = useState(ventures[0].slug);
   const [task, setTask] = useState("");
   const [plan, setPlan] = useState<Plan | null>(null);
+  const [orchestration, setOrchestration] = useState<Orchestration | null>(null);
+  const [runtimeNote, setRuntimeNote] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [tasks, setTasks] = useState(initialTasks);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -114,29 +150,52 @@ export function CommandCenter() {
 
     setLoading(true);
     setPlan(null);
+    setOrchestration(null);
+    setRuntimeNote(null);
 
     try {
-      const response = await fetch("/api/router", {
+      const response = await fetch("/api/orchestrate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ task: clean, venture: ventureSlug }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data?.error || "Routing failed");
 
-      setPlan(data.plan);
+      if (data?.plan) setPlan(data.plan);
+      if (data?.orchestration) setOrchestration(data.orchestration);
+      if (data?.warning) setRuntimeNote(data.warning);
+
+      if (!response.ok && !data?.plan) {
+        throw new Error(data?.error || "Orchestration failed");
+      }
+
+      const runStatus: TaskFeedItem["status"] = data?.orchestration
+        ? data.orchestration.status === "completed"
+          ? "done"
+          : "review"
+        : "working";
+
       setTasks((current) => [
         {
           id: "PV-" + String(19 + current.length).padStart(3, "0"),
           title: clean,
-          agent: data.plan.agents.slice(0, 2).join(" + "),
-          status: "working",
+          agent: data?.orchestration
+            ? data.orchestration.traces
+                .filter((trace: Orchestration["traces"][number]) => trace.phase === "specialist")
+                .map((trace: Orchestration["traces"][number]) => trace.agentName)
+                .slice(0, 2)
+                .join(" + ") || "Chief of Staff"
+            : data.plan.agents.slice(0, 2).join(" + "),
+          status: runStatus,
           when: "Ahora",
         },
         ...current.slice(0, 4),
       ]);
       setTask("");
     } catch {
+      setRuntimeNote(
+        "La orquestación quedó retenida. No se ejecutó ninguna acción externa."
+      );
       setPlan({
         summary:
           "La tarea quedó retenida. El sistema no ejecutará ninguna acción externa hasta recuperar el router.",
@@ -189,6 +248,8 @@ export function CommandCenter() {
               onClick={() => {
                 setVentureSlug(item.slug);
                 setPlan(null);
+                setOrchestration(null);
+                setRuntimeNote(null);
                 setMobileOpen(false);
               }}
             >
@@ -256,7 +317,7 @@ export function CommandCenter() {
           </div>
           <div className={styles.topbarActions}>
             <span className={styles.systemStatus}>
-              <i /> Foundation online
+              <i /> Orchestration V0.3
             </span>
             <button type="button" className={styles.iconButton}>
               <MoreHorizontal size={18} />
@@ -283,7 +344,7 @@ export function CommandCenter() {
             <div className={styles.heroMetric}>
               <span>Venture health</span>
               <strong>Building</strong>
-              <small>Base operativa V0.1</small>
+              <small>Model-backed agents preparados</small>
             </div>
           </section>
 
@@ -307,12 +368,14 @@ export function CommandCenter() {
               />
               <button type="submit" disabled={!task.trim() || loading}>
                 {loading ? <Activity size={16} className={styles.spin} /> : <Send size={16} />}
-                {loading ? "Routing" : "Delegar"}
+                {loading ? "Agentes trabajando" : "Delegar"}
               </button>
             </form>
             <p className={styles.delegateHint}>
-              El router actual planifica y clasifica. Todavía no ejecuta acciones externas.
+              Con provider configurado: Chief of Staff → especialistas → QA → síntesis.
+              Las acciones externas siguen deshabilitadas.
             </p>
+            {runtimeNote && <p className={styles.runtimeNote}>{runtimeNote}</p>}
           </section>
 
           <section className={styles.grid}>
@@ -432,7 +495,9 @@ export function CommandCenter() {
             <section className={styles.plan}>
               <div className={styles.planTop}>
                 <div>
-                  <span className={styles.kicker}>ROUTING RESULT · LOCAL ROUTER</span>
+                  <span className={styles.kicker}>
+                    {orchestration ? "ORCHESTRATION RESULT · MODEL-BACKED" : "ROUTING RESULT · LOCAL ROUTER"}
+                  </span>
                   <h3>{plan.department}</h3>
                   <p>{plan.summary}</p>
                 </div>
@@ -467,10 +532,83 @@ export function CommandCenter() {
                       : "Puede continuar dentro de guardrails."}
                   </strong>
                   <span>
-                    El sistema actual devuelve planificación; la capa de ejecución real se habilita en una etapa posterior.
+                    {orchestration
+                      ? "Los agentes generaron trabajo real de análisis y síntesis. Ningún side effect externo fue ejecutado."
+                      : "El provider de modelos no está activo; se mantiene el plan local como fallback seguro."}
                   </span>
                 </div>
               </div>
+            </section>
+          )}
+
+          {orchestration && (
+            <section className={styles.orchestrationResult}>
+              <div className={styles.resultHeader}>
+                <div>
+                  <span className={styles.kicker}>CHIEF OF STAFF · FINAL SYNTHESIS</span>
+                  <h3>{orchestration.final.executiveSummary}</h3>
+                </div>
+                <span className={[
+                  styles.qaBadge,
+                  orchestration.qa.verdict === "pass" ? styles.qaPass : styles.qaRevision,
+                ].join(" ")}>
+                  QA {orchestration.qa.verdict === "pass" ? "PASS" : "REVISAR"}
+                </span>
+              </div>
+
+              <div className={styles.resultGrid}>
+                <div>
+                  <span className={styles.planLabel}>Decisiones</span>
+                  <ul>
+                    {orchestration.final.decisions.map((item) => <li key={item}>{item}</li>)}
+                  </ul>
+                </div>
+                <div>
+                  <span className={styles.planLabel}>Entregables</span>
+                  <ul>
+                    {orchestration.final.deliverables.map((item) => <li key={item}>{item}</li>)}
+                  </ul>
+                </div>
+                <div>
+                  <span className={styles.planLabel}>Próximas acciones</span>
+                  <ul>
+                    {orchestration.final.nextActions.map((item) => <li key={item}>{item}</li>)}
+                  </ul>
+                </div>
+              </div>
+
+              <div className={styles.qaPanel}>
+                <div>
+                  <strong>QA Agent</strong>
+                  <span>{orchestration.qa.summary}</span>
+                </div>
+                <div className={styles.traceChips}>
+                  {orchestration.traces.map((trace, index) => (
+                    <span key={trace.phase + trace.agentId + index}>
+                      {trace.agentName} · {trace.phase}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className={styles.usageRow}>
+                <span>{orchestration.usage.totalTokens.toLocaleString("es-AR")} tokens</span>
+                <span>{orchestration.persisted ? "Run persistido" : "Run volátil"}</span>
+                <span>{orchestration.status.replaceAll("_", " ")}</span>
+                <span>0 acciones externas</span>
+              </div>
+
+              {orchestration.final.approvalNotes.length > 0 && (
+                <div className={styles.approvalNotes}>
+                  <ShieldCheck size={17} />
+                  <div>
+                    <strong>Pendiente de aprobación humana</strong>
+                    {orchestration.final.approvalNotes.map((item) => (
+                      <span key={item}>{item}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </section>
           )}
 
@@ -486,6 +624,8 @@ export function CommandCenter() {
                 onClick={() => {
                   setVentureSlug(item.slug);
                   setPlan(null);
+                  setOrchestration(null);
+                  setRuntimeNote(null);
                 }}
                 className={ventureSlug === item.slug ? styles.portfolioActive : ""}
               >
