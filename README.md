@@ -55,3 +55,10 @@ See `docs/ARCHITECTURE.md` for the system design and `supabase/migrations` for t
 Persistence and approval foundations are implemented behind a dedicated Supabase adapter. While the Personal Ventures Supabase project remains inactive, the app keeps using the deterministic router and reports persistence as disabled instead of pretending runs were saved.
 
 New operational surfaces: `/agents`, `/runs`, `/experiments`, `/knowledge`, `/approvals` and `/api/system/status`.
+
+
+## V0.3 progress
+
+The system now includes model-backed orchestration behind the deterministic safety router: Chief of Staff planning → selected specialists → QA → Chief of Staff synthesis. If the model provider is not configured, the Command Center can fall back to the local router without pretending that agents ran.
+
+External actions remain disabled by default. The current orchestration layer produces analysis, plans and deliverables only.

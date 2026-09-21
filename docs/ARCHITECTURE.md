@@ -108,12 +108,16 @@ Shared code patterns are fine. Shared tenant data is not.
 - explicit disabled-mode fallback;
 - telemetry-ready schema for provider/model/token/cost data.
 
-### V0.3 — Real orchestration
-- model provider adapter;
-- structured agent runs;
-- subtask graph;
-- retries and timeouts;
-- usage/cost telemetry.
+### V0.3 — Real orchestration — implemented in code
+- OpenAI Responses API provider adapter;
+- structured Chief of Staff planning;
+- parallel specialist runs;
+- QA review;
+- Chief of Staff final synthesis;
+- provider timeouts and output caps;
+- token telemetry;
+- persistence hooks when the dedicated Supabase project is active;
+- no external side effects.
 
 ### V0.4 — Connectors
 - GitHub/Vercel;

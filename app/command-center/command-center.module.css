@@ -161,3 +161,38 @@
   .pulseWrap { display: none; }
   .planTop { flex-direction: column; }
 }
+
+.runtimeNote { margin: 7px 2px 0; color: #d7b66f; font-size: 9px; line-height: 1.45; }
+.orchestrationResult {
+  margin-top: 16px;
+  padding: 20px;
+  border: 1px solid rgba(115,230,207,.12);
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, rgba(115,230,207,.035), transparent 38%),
+    rgba(17,20,24,.82);
+}
+.resultHeader { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+.resultHeader h3 { margin: 6px 0 0; max-width: 920px; font-size: 18px; line-height: 1.35; letter-spacing: -.035em; }
+.qaBadge { padding: 6px 9px; border-radius: 99px; font-size: 8px; font-weight: 850; white-space: nowrap; }
+.qaPass { color: var(--success); background: rgba(117,226,167,.07); }
+.qaRevision { color: var(--warning); background: rgba(255,199,100,.08); }
+.resultGrid { margin-top: 18px; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; }
+.resultGrid > div { padding: 13px; border: 1px solid var(--line); border-radius: 12px; background: rgba(8,11,13,.38); }
+.resultGrid ul { margin: 0; padding-left: 17px; color: #87939d; font-size: 9px; line-height: 1.65; }
+.qaPanel { margin-top: 10px; padding: 13px; border: 1px solid var(--line); border-radius: 12px; display: grid; gap: 10px; }
+.qaPanel > div:first-child { display: grid; gap: 4px; }
+.qaPanel strong { font-size: 9px; }
+.qaPanel span { color: #74818b; font-size: 8px; line-height: 1.5; }
+.traceChips { display: flex; flex-wrap: wrap; gap: 5px; }
+.traceChips span { padding: 4px 6px; border-radius: 6px; background: rgba(255,255,255,.035); }
+.usageRow { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 7px; color: #67737d; font-size: 8px; }
+.usageRow span { padding: 5px 7px; border: 1px solid var(--line); border-radius: 7px; }
+.approvalNotes { margin-top: 10px; padding: 12px; border: 1px solid rgba(255,199,100,.14); border-radius: 12px; display: grid; grid-template-columns: 20px 1fr; gap: 8px; color: var(--warning); background: rgba(255,199,100,.03); }
+.approvalNotes > div { display: grid; gap: 4px; }
+.approvalNotes strong { color: #c7b894; font-size: 9px; }
+.approvalNotes span { color: #827b6d; font-size: 8px; line-height: 1.45; }
+@media (max-width: 820px) {
+  .resultGrid { grid-template-columns: 1fr; }
+  .resultHeader { flex-direction: column; }
+}
