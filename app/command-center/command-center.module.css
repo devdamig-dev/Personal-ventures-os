@@ -21,8 +21,8 @@
 .ventureCopy strong { font-size: 12px; }
 .ventureCopy small { color: #687480; font-size: 9px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .systemNav { display: grid; gap: 4px; }
-.systemNav button { border: 0; border-radius: 10px; padding: 9px 10px; background: transparent; color: #7d8995; display: flex; align-items: center; gap: 9px; font-size: 11px; font-weight: 650; text-align: left; }
-.systemNav button:hover { color: #d8dee4; background: rgba(255,255,255,.025); }
+.systemNav button, .systemNav a { border: 0; border-radius: 10px; padding: 9px 10px; background: transparent; color: #7d8995; display: flex; align-items: center; gap: 9px; font-size: 11px; font-weight: 650; text-align: left; text-decoration: none; }
+.systemNav button:hover, .systemNav a:hover { color: #d8dee4; background: rgba(255,255,255,.025); }
 .systemNav .navActive { color: var(--text); background: rgba(215,255,97,.07); }
 .systemNav .navActive svg { color: var(--accent); }
 .scopeCard { margin-top: auto; padding: 13px; border: 1px solid rgba(115,230,207,.13); border-radius: 14px; background: rgba(115,230,207,.04); display: grid; grid-template-columns: 18px 1fr; gap: 9px; color: var(--accent-2); }

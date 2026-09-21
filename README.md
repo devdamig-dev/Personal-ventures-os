@@ -48,3 +48,10 @@ The visual Agents Office is a control surface over real task runs. It is not the
 Foundation / V0.1 in development.
 
 See `docs/ARCHITECTURE.md` for the system design and `supabase/migrations` for the persistence model.
+
+
+## V0.2 progress
+
+Persistence and approval foundations are implemented behind a dedicated Supabase adapter. While the Personal Ventures Supabase project remains inactive, the app keeps using the deterministic router and reports persistence as disabled instead of pretending runs were saved.
+
+New operational surfaces: `/agents`, `/runs`, `/experiments`, `/knowledge`, `/approvals` and `/api/system/status`.
