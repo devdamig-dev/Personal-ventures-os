@@ -18,6 +18,7 @@ import {
   Globe2,
   Layers3,
   ListChecks,
+  Link2,
   Menu,
   MessageSquareText,
   MoreHorizontal,
@@ -77,6 +78,14 @@ type Orchestration = {
     totalTokens: number;
     estimatedCostUsd: number;
   };
+  connectorObservations: Array<{
+    connector: "github" | "vercel" | "wp-central";
+    action: string;
+    resource: string;
+    status: "ok" | "unavailable" | "error" | "blocked";
+    summary: string;
+  }>;
+  connectorMode: "read-only";
 };
 
 type TaskFeedItem = {
@@ -286,6 +295,9 @@ export function CommandCenter() {
           </Link>
           <Link href="/knowledge">
             <NotebookText size={16} /> Knowledge
+          </Link>
+          <Link href="/connectors">
+            <Link2 size={16} /> Connectors
           </Link>
           <Link href="/approvals">
             <ShieldCheck size={16} /> Approvals
@@ -594,9 +606,26 @@ export function CommandCenter() {
               <div className={styles.usageRow}>
                 <span>{orchestration.usage.totalTokens.toLocaleString("es-AR")} tokens</span>
                 <span>{orchestration.persisted ? "Run persistido" : "Run volátil"}</span>
+                <span>{orchestration.connectorObservations.length} observaciones</span>
                 <span>{orchestration.status.replaceAll("_", " ")}</span>
                 <span>0 acciones externas</span>
               </div>
+
+              {orchestration.connectorObservations.length > 0 && (
+                <div className={styles.connectorEvidence}>
+                  <div>
+                    <strong>Connector evidence · read-only</strong>
+                    <span>Los agentes sólo recibieron observaciones registradas por el runtime.</span>
+                  </div>
+                  <div className={styles.traceChips}>
+                    {orchestration.connectorObservations.map((observation, index) => (
+                      <span key={observation.connector + observation.action + observation.resource + index}>
+                        {observation.connector} · {observation.status}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {orchestration.final.approvalNotes.length > 0 && (
                 <div className={styles.approvalNotes}>

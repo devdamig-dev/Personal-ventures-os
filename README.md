@@ -62,3 +62,10 @@ New operational surfaces: `/agents`, `/runs`, `/experiments`, `/knowledge`, `/ap
 The system now includes model-backed orchestration behind the deterministic safety router: Chief of Staff planning → selected specialists → QA → Chief of Staff synthesis. If the model provider is not configured, the Command Center can fall back to the local router without pretending that agents ran.
 
 External actions remain disabled by default. The current orchestration layer produces analysis, plans and deliverables only.
+
+
+## V0.4 progress
+
+The orchestration engine now supports registered read-only connector observations. The Chief of Staff can request bounded evidence for specialist tasks, the runtime validates the request against a connector registry, and specialists/QA receive the resulting observation.
+
+Initial adapters cover GitHub, Vercel and a read-only Nexodg WP Central bridge contract. No write actions are registered in V0.4.

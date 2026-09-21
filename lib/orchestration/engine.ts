@@ -1,4 +1,14 @@
 import { agentDefinitions } from "@/lib/agents";
+import { executeReadOnlyConnectors } from "@/lib/connectors/execute";
+import {
+  allowedConnectorActionsForAgent,
+  connectorForAction,
+  connectorManifests,
+} from "@/lib/connectors/registry";
+import type {
+  ConnectorActionId,
+  ConnectorRequest,
+} from "@/lib/connectors/types";
 import {
   completeTaskRun,
   createTaskRun,
@@ -78,8 +88,26 @@ function taskForAgent(
       objective: founderObjective,
       expectedOutput:
         "A concrete specialist contribution that advances the founder objective.",
+      toolRequests: [],
     }
   );
+}
+
+function sanitizeConnectorRequests(input: {
+  agentId: string;
+  toolRequests: ChiefPlan["subtasks"][number]["toolRequests"];
+}) {
+  const allowed = new Set(allowedConnectorActionsForAgent(input.agentId));
+
+  return input.toolRequests
+    .filter((request) => allowed.has(request.action))
+    .slice(0, 3)
+    .map<ConnectorRequest>((request) => ({
+      connector: connectorForAction(request.action as ConnectorActionId),
+      action: request.action as ConnectorActionId,
+      resource: request.resource,
+      reason: request.reason,
+    }));
 }
 
 export async function orchestrateTask(input: {
@@ -114,6 +142,11 @@ export async function orchestrateTask(input: {
     )
     .slice(0, maxSpecialists());
 
+  const connectors = connectorManifests();
+  const connectorActions = connectors.flatMap((connector) =>
+    connector.actions.map((action) => action.id)
+  );
+
   const traces: AgentTrace[] = [];
   const persistenceEnabled =
     input.persist !== false && getPersistenceMode() === "supabase";
@@ -142,8 +175,11 @@ export async function orchestrateTask(input: {
     const chiefPlanning = await runStructuredResponse<ChiefPlan>({
       role: "orchestrator",
       schemaName: "personal_ventures_chief_plan",
-      schema: chiefPlanSchema(specialists.map((agent) => agent.id)),
-      instructions: chiefPlanningInstructions(venture, specialists),
+      schema: chiefPlanSchema(
+        specialists.map((agent) => agent.id),
+        connectorActions
+      ),
+      instructions: chiefPlanningInstructions(venture, specialists, connectors),
       input: JSON.stringify({
         founderObjective,
         routingPlan: {
@@ -151,16 +187,27 @@ export async function orchestrateTask(input: {
           approvalRequired: routingPlan.approvalRequired,
           agents: routingPlan.agents,
         },
+        connectorRuntime: connectors.map((connector) => ({
+          id: connector.id,
+          configured: connector.configured,
+          mode: connector.mode,
+          actions: connector.actions.map((action) => action.id),
+        })),
       }),
-      maxOutputTokens: 1500,
+      maxOutputTokens: 1800,
     });
 
     const allowedIds = new Set(specialists.map((agent) => agent.id));
     const chiefPlan: ChiefPlan = {
       ...chiefPlanning.data,
-      subtasks: chiefPlanning.data.subtasks.filter((subtask) =>
-        allowedIds.has(subtask.agentId)
-      ),
+      subtasks: chiefPlanning.data.subtasks
+        .filter((subtask) => allowedIds.has(subtask.agentId))
+        .map((subtask) => ({
+          ...subtask,
+          toolRequests: Array.isArray(subtask.toolRequests)
+            ? subtask.toolRequests.slice(0, 3)
+            : [],
+        })),
     };
 
     const planningTrace: AgentTrace = {
@@ -180,8 +227,18 @@ export async function orchestrateTask(input: {
     const specialistRuns = await Promise.all(
       specialists.map(async (agent) => {
         const subtask = taskForAgent(chiefPlan, agent.id, founderObjective);
-        const startedAt = now();
+        const connectorRequests = sanitizeConnectorRequests({
+          agentId: agent.id,
+          toolRequests: subtask.toolRequests,
+        });
 
+        const connectorObservations = await executeReadOnlyConnectors({
+          requests: connectorRequests,
+          agentId: agent.id,
+          ventureSlug: venture.slug,
+        });
+
+        const startedAt = now();
         const response = await runStructuredResponse<SpecialistOutput>({
           role: "specialist",
           schemaName: `personal_ventures_${agent.id.replace(/[^a-z0-9_-]/gi, "_")}_output`,
@@ -191,12 +248,14 @@ export async function orchestrateTask(input: {
             founderObjective,
             chiefPlan,
             assignment: subtask,
+            connectorObservations,
             guardrails: {
               approvalRequired: routingPlan.approvalRequired,
-              externalActionsAvailable: false,
+              connectorMode: "read-only",
+              externalWriteActionsAvailable: false,
             },
           }),
-          maxOutputTokens: 1600,
+          maxOutputTokens: 1700,
         });
 
         const trace: AgentTrace = {
@@ -218,6 +277,7 @@ export async function orchestrateTask(input: {
             agentId: agent.id,
             agentName: agent.name,
             output: response.data,
+            connectorObservations,
           },
         };
       })
@@ -226,6 +286,9 @@ export async function orchestrateTask(input: {
     specialistRuns.forEach(({ trace }) => traces.push(trace));
 
     const specialistOutputs = specialistRuns.map(({ output }) => output);
+    const connectorObservations = specialistOutputs.flatMap(
+      (output) => output.connectorObservations
+    );
 
     const qaStarted = now();
     const qaResponse = await runStructuredResponse<QaOutput>({
@@ -238,8 +301,9 @@ export async function orchestrateTask(input: {
         routingPlan,
         chiefPlan,
         specialistOutputs,
+        connectorObservations,
       }),
-      maxOutputTokens: 1100,
+      maxOutputTokens: 1200,
     });
 
     const qaTrace: AgentTrace = {
@@ -267,11 +331,13 @@ export async function orchestrateTask(input: {
         routingPlan,
         chiefPlan,
         specialistOutputs,
+        connectorObservations,
         qa: qaResponse.data,
         approvalRequired: routingPlan.approvalRequired,
+        connectorMode: "read-only",
         externalActionsExecuted: false,
       }),
-      maxOutputTokens: 1500,
+      maxOutputTokens: 1600,
     });
 
     const synthesisTrace: AgentTrace = {
@@ -303,6 +369,7 @@ export async function orchestrateTask(input: {
       routingPlan,
       chiefPlan,
       specialistOutputs,
+      connectorObservations,
       qa: qaResponse.data,
       final: synthesisResponse.data,
       traces,
@@ -310,6 +377,7 @@ export async function orchestrateTask(input: {
       status,
       approvalRequired: routingPlan.approvalRequired,
       externalActionsExecuted: false,
+      connectorMode: "read-only",
       persisted: persistenceEnabled,
       runId,
     };
@@ -334,6 +402,7 @@ export async function orchestrateTask(input: {
         output: {
           planning: chiefPlan,
           synthesis: synthesisResponse.data,
+          connectorObservations,
         },
         provider: "openai",
         model: synthesisResponse.model,
@@ -347,7 +416,7 @@ export async function orchestrateTask(input: {
           runId,
           ventureSlug: venture.slug,
           agentKey: specialist.trace.agentId,
-          output: specialist.trace.output,
+          output: specialist.output,
           provider: "openai",
           model: specialist.trace.model,
           inputTokens: specialist.trace.usage.inputTokens,

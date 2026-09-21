@@ -1,3 +1,4 @@
+import type { ConnectorActionId, ConnectorObservation } from "@/lib/connectors/types";
 import type { RoutingPlan } from "@/lib/router";
 import type { ProviderUsage } from "@/lib/providers/types";
 
@@ -9,6 +10,11 @@ export type ChiefPlan = {
     title: string;
     objective: string;
     expectedOutput: string;
+    toolRequests: Array<{
+      action: ConnectorActionId;
+      resource: string;
+      reason: string;
+    }>;
   }>;
   coordinationNotes: string[];
 };
@@ -51,17 +57,21 @@ export type AgentTrace = {
   usage: ProviderUsage;
 };
 
+export type SpecialistRunOutput = {
+  agentId: string;
+  agentName: string;
+  output: SpecialistOutput;
+  connectorObservations: ConnectorObservation[];
+};
+
 export type OrchestrationResult = {
   mode: "model-backed";
   venture: string;
   objective: string;
   routingPlan: RoutingPlan;
   chiefPlan: ChiefPlan;
-  specialistOutputs: Array<{
-    agentId: string;
-    agentName: string;
-    output: SpecialistOutput;
-  }>;
+  specialistOutputs: SpecialistRunOutput[];
+  connectorObservations: ConnectorObservation[];
   qa: QaOutput;
   final: FinalSynthesis;
   traces: AgentTrace[];
@@ -69,6 +79,7 @@ export type OrchestrationResult = {
   status: "completed" | "awaiting_approval" | "needs_revision";
   approvalRequired: boolean;
   externalActionsExecuted: false;
+  connectorMode: "read-only";
   persisted: boolean;
   runId: string | null;
 };
