@@ -4,6 +4,7 @@ import {
   FlaskConical,
   Layers3,
   ListChecks,
+  Link2,
   NotebookText,
   ShieldCheck,
 } from "lucide-react";
@@ -16,6 +17,7 @@ const navItems = [
   { href: "/runs", label: "Runs", icon: ListChecks, key: "runs" },
   { href: "/experiments", label: "Experiments", icon: FlaskConical, key: "experiments" },
   { href: "/knowledge", label: "Knowledge", icon: NotebookText, key: "knowledge" },
+  { href: "/connectors", label: "Connectors", icon: Link2, key: "connectors" },
   { href: "/approvals", label: "Approvals", icon: ShieldCheck, key: "approvals" },
 ] as const;
 

@@ -119,9 +119,16 @@ Shared code patterns are fine. Shared tenant data is not.
 - persistence hooks when the dedicated Supabase project is active;
 - no external side effects.
 
-### V0.4 — Connectors
-- GitHub/Vercel;
-- WordPress Central;
+### V0.4 — Connectors — read-only foundation implemented
+- connector registry and per-agent permissions;
+- GitHub read adapter;
+- Vercel read adapter;
+- Nexodg WP Central read-only bridge contract;
+- connector observations injected into specialist work, QA and synthesis;
+- runtime connector status;
+- no external write actions.
+
+Planned later additions:
 - Drive;
 - Gmail;
 - social/content systems;

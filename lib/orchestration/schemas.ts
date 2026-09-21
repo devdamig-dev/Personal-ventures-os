@@ -1,5 +1,11 @@
-export function chiefPlanSchema(allowedAgentIds: string[]) {
-  const enumValues = allowedAgentIds.length ? allowedAgentIds : ["chief-of-staff"];
+export function chiefPlanSchema(
+  allowedAgentIds: string[],
+  allowedConnectorActions: string[]
+) {
+  const agentEnum = allowedAgentIds.length ? allowedAgentIds : ["chief-of-staff"];
+  const actionEnum = allowedConnectorActions.length
+    ? allowedConnectorActions
+    : ["github.repo_summary"];
 
   return {
     type: "object",
@@ -18,12 +24,32 @@ export function chiefPlanSchema(allowedAgentIds: string[]) {
         items: {
           type: "object",
           additionalProperties: false,
-          required: ["agentId", "title", "objective", "expectedOutput"],
+          required: [
+            "agentId",
+            "title",
+            "objective",
+            "expectedOutput",
+            "toolRequests",
+          ],
           properties: {
-            agentId: { type: "string", enum: enumValues },
+            agentId: { type: "string", enum: agentEnum },
             title: { type: "string" },
             objective: { type: "string" },
             expectedOutput: { type: "string" },
+            toolRequests: {
+              type: "array",
+              maxItems: 3,
+              items: {
+                type: "object",
+                additionalProperties: false,
+                required: ["action", "resource", "reason"],
+                properties: {
+                  action: { type: "string", enum: actionEnum },
+                  resource: { type: "string" },
+                  reason: { type: "string" },
+                },
+              },
+            },
           },
         },
       },
